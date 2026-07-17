@@ -48,15 +48,27 @@ docker compose up --build -d
 # http://localhost:3000
 ```
 
+또는 GitHub Actions가 게시한 이미지:
+
+```bash
+docker pull ghcr.io/dobuzi/selena:latest
+docker run -d --name selena -p 3000:3000 -v selena_data:/data ghcr.io/dobuzi/selena:latest
+```
+
 방 데이터는 Docker 볼륨에 SQLite로 저장됩니다.
 
-## 공개 HTTPS / 배포
+## CI / 배포 (GitHub Actions)
+
+| 워크플로 | 트리거 | 내용 |
+|----------|--------|------|
+| [CI](https://github.com/Dobuzi/selena/actions/workflows/ci.yml) | `main` push / PR | 단위 테스트, 빌드, Playwright E2E |
+| [Deploy](https://github.com/Dobuzi/selena/actions/workflows/deploy.yml) | `main` push | Docker → `ghcr.io/dobuzi/selena` |
 
 상세: **[docs/deploy.md](docs/deploy.md)**
 
 요약:
 - **데모:** Cloudflare Tunnel 또는 ngrok → `localhost:3000` 노출
-- **상시:** Docker + VPS (또는 Fly/Railway 단일 머신 + 볼륨)
+- **상시:** `ghcr.io/dobuzi/selena` 이미지를 VPS에서 실행 (+ HTTPS)
 - **비권장:** Vercel 서버리스 단독 (SQLite·SSE 한계)
 
 ## 구조

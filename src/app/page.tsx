@@ -126,6 +126,7 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setMode("join")}
+              data-testid="home-join"
               className="btn-touch w-full bg-white text-lg text-slate-900 ring-1 ring-slate-300 active:bg-slate-50"
             >
               시험장 입장

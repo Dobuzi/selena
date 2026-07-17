@@ -9,7 +9,10 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "docker:up": "docker compose up --build -d",
+    "docker:down": "docker compose down",
+    "start:host": "next start -H 0.0.0.0 -p 3000"
   },
   "dependencies": {
     "better-sqlite3": "^12.11.1",

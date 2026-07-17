@@ -1,0 +1,15 @@
+node_modules
+.next
+.git
+.data
+.superpowers
+.worktrees
+test-results
+playwright-report
+coverage
+*.md
+!README.md
+e2e
+docs
+.env*
+.DS_Store

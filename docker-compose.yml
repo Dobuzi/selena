@@ -1,0 +1,21 @@
+# Local / single-VPS production-like run
+#   docker compose up --build -d
+# App: http://localhost:3000
+# Data: docker volume selena_data → /data/selena.sqlite
+
+services:
+  selena:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - SELENA_DB_PATH=/data/selena.sqlite
+      # Optional AI (leave empty for fallback questions)
+      - XAI_API_KEY=${XAI_API_KEY:-}
+    volumes:
+      - selena_data:/data
+    restart: unless-stopped
+
+volumes:
+  selena_data:

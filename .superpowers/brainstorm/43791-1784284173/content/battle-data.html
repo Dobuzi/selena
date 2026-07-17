@@ -1,0 +1,86 @@
+<h2>배틀 규칙 · 데이터 (3/4)</h2>
+<p class="subtitle">솔로 / 멀티 공통 문제 포맷 + 판정 규칙</p>
+
+<div class="section">
+  <p class="label">배틀 공통 규칙</p>
+  <div class="mockup">
+    <div class="mockup-header">한 판 = 10문항 · 문항당 제한 시간</div>
+    <div class="mockup-body" style="padding:16px;font-size:14px;line-height:1.6;">
+      <ul style="margin:0;padding-left:18px;">
+        <li>문항 수: <strong>10</strong> (MVP 고정)</li>
+        <li>문항당 시간: <strong>20초</strong> (시간 초과 = 오답)</li>
+        <li>형식: <strong>4지선다</strong> 객관식</li>
+        <li>과목: 국어 / 영어 / 수학 / 과학 · 난이도: 하 / 중 / 상</li>
+        <li>정답 공개 시점: 제출 직후 (해설 1~2문장, AI 생성)</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">솔로 — vs AI</div>
+    <div class="mockup-body" style="padding:16px;font-size:13px;line-height:1.55;">
+      <p><strong>HP:</strong> 나 3 · AI 3</p>
+      <p><strong>정답</strong> → AI HP −1 (공격 성공)</p>
+      <p><strong>오답/시간초과</strong> → 내 HP −1</p>
+      <p><strong>승리:</strong> AI HP 0 또는 10문항 후 HP 더 많음</p>
+      <p><strong>패배:</strong> 내 HP 0</p>
+      <p style="opacity:0.7;margin-top:8px;">AI는 “상대 체력 바”일 뿐, 별도 문제 풀이 없음</p>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">멀티 — 같은 시험장</div>
+    <div class="mockup-body" style="padding:16px;font-size:13px;line-height:1.55;">
+      <p><strong>인원:</strong> 2~4명 (MVP)</p>
+      <p><strong>진행:</strong> 호스트가 시작 → 전원 같은 문항·타이머</p>
+      <p><strong>점수:</strong> 정답 +100, 남은 시간 보너스 +남은초×2</p>
+      <p><strong>오답/시간초과:</strong> +0</p>
+      <p><strong>순위:</strong> 10문항 후 총점 높은 순</p>
+      <p style="opacity:0.7;margin-top:8px;">늦게 입장하면 다음 판부터 참여</p>
+    </div>
+  </div>
+</div>
+
+<div class="section" style="margin-top:16px;">
+  <p class="label">핵심 데이터 모델 (개념)</p>
+  <div class="mockup">
+    <div class="mockup-header">Entities</div>
+    <div class="mockup-body" style="padding:16px;font-family:ui-monospace,monospace;font-size:12px;line-height:1.5;white-space:pre-wrap;">Room {
+  roomId          // hash(school + examHall)
+  schoolName
+  examHallName
+  subject         // korean | english | math | science
+  difficulty      // easy | medium | hard
+  hostPlayerId
+  players[]
+  questions[]     // server-side includes correctIndex
+  status          // lobby | generating | battling | finished
+  mode            // solo | multi
+}
+
+Player {
+  playerId
+  nickname
+  hp | score
+  answers[]
+}
+
+Question {
+  id
+  stem            // 문제 본문
+  choices[4]
+  correctIndex    // 0-3, server only until reveal
+  explanation     // short
+}
+</div>
+  </div>
+</div>
+
+<div class="section">
+  <p class="label">방 ID 규칙</p>
+  <p style="font-size:14px;line-height:1.6;">
+    입력값 trim → 소문자/공백 정규화 → <code>school|examHall|subject</code> 조합 해시.<br>
+    같은 학교·시험장·과목이면 <strong>같은 방</strong>. 난이도는 방 생성 시 고정 (먼저 만든 사람 기준).
+  </p>
+</div>

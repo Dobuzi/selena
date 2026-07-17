@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { savePlayerId } from "@/hooks/useRoomSession";
+import { browserCreateOrJoin } from "@/lib/browser-rooms";
+import { isStaticMode } from "@/lib/platform";
 import type { Difficulty, Subject } from "@/lib/types";
 
 type Mode = "choose" | "create" | "join";
@@ -45,6 +47,25 @@ export default function HomePage() {
         setError("닉네임을 입력해 주세요.");
         return;
       }
+
+      if (isStaticMode()) {
+        const result = browserCreateOrJoin({
+          intent: mode === "create" ? "create" : "join",
+          schoolName,
+          examHallName,
+          nickname,
+          subject,
+          difficulty: mode === "create" ? difficulty : undefined,
+        });
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        savePlayerId(result.room.roomId, result.playerId);
+        router.push(`/room?id=${encodeURIComponent(result.room.roomId)}`);
+        return;
+      }
+
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -82,7 +103,7 @@ export default function HomePage() {
         return;
       }
       savePlayerId(data.room.roomId, data.playerId);
-      router.push(`/room/${data.room.roomId}`);
+      router.push(`/room?id=${encodeURIComponent(data.room.roomId)}`);
     } catch (e) {
       const msg =
         e instanceof Error && e.message
@@ -98,6 +119,8 @@ export default function HomePage() {
     }
   };
 
+  const staticHint = isStaticMode();
+
   return (
     <main className="app-shell flex flex-col">
       <div className="flex flex-1 flex-col justify-center py-4">
@@ -111,6 +134,12 @@ export default function HomePage() {
           <p className="mt-3 text-base leading-relaxed text-slate-600">
             학교·시험장 이름으로 들어가서, 문제로 배틀해요
           </p>
+          {staticHint && (
+            <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-left text-sm leading-relaxed text-amber-900 ring-1 ring-amber-200">
+              GitHub Pages 데모 모드입니다. 연습 문제(폴백)로 솔로·같은 기기 탭
+              멀티가 가능해요. 서버/AI 전체 기능은 Docker 이미지를 사용하세요.
+            </p>
+          )}
         </div>
 
         {mode === "choose" && (

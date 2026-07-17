@@ -3,12 +3,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientRoom } from "@/lib/room-view";
 import { fetchWithTimeout, readJson } from "@/lib/client-fetch";
+import { isStaticMode } from "@/lib/platform";
+import {
+  browserAnswer,
+  browserGetRoom,
+  browserLeave,
+  browserRematch,
+  browserStart,
+  subscribeBrowserRoom,
+} from "@/lib/browser-rooms";
 
 function storageKey(roomId: string) {
   return `selena:playerId:${roomId}`;
 }
 
 export function useRoomSession(roomId: string) {
+  const staticMode = isStaticMode();
   const [room, setRoom] = useState<ClientRoom | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,6 +34,16 @@ export function useRoomSession(roomId: string) {
   }, []);
 
   const fetchRoom = useCallback(async () => {
+    if (staticMode) {
+      const r = browserGetRoom(roomId);
+      if (!r) {
+        setError("시험장이 없어요.");
+        setRoom(null);
+        return;
+      }
+      applyRoom(r);
+      return;
+    }
     try {
       const pid = playerIdRef.current;
       const qs = pid ? `?playerId=${encodeURIComponent(pid)}` : "";
@@ -41,7 +61,7 @@ export function useRoomSession(roomId: string) {
     } catch (e) {
       setError(e instanceof Error ? e.message : "네트워크 오류가 났어요.");
     }
-  }, [roomId, applyRoom]);
+  }, [roomId, applyRoom, staticMode]);
 
   useEffect(() => {
     const stored =
@@ -53,9 +73,10 @@ export function useRoomSession(roomId: string) {
 
     let cancelled = false;
     let es: EventSource | null = null;
+    let unsub: (() => void) | undefined;
 
     (async () => {
-      if (stored) {
+      if (!staticMode && stored) {
         try {
           await fetchWithTimeout(`/api/rooms/${roomId}/reconnect`, {
             method: "POST",
@@ -72,41 +93,53 @@ export function useRoomSession(roomId: string) {
       setLoading(false);
     })();
 
-    const qs = stored ? `?playerId=${encodeURIComponent(stored)}` : "";
-    try {
-      es = new EventSource(`/api/rooms/${roomId}/events${qs}`);
-      es.onmessage = (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          if (data.error) {
-            setError("시험장이 없어요.");
-            setRoom(null);
-            return;
+    if (staticMode) {
+      unsub = subscribeBrowserRoom((id) => {
+        if (id === roomId) void fetchRoom();
+      });
+    } else {
+      const qs = stored ? `?playerId=${encodeURIComponent(stored)}` : "";
+      try {
+        es = new EventSource(`/api/rooms/${roomId}/events${qs}`);
+        es.onmessage = (ev) => {
+          try {
+            const data = JSON.parse(ev.data);
+            if (data.error) {
+              setError("시험장이 없어요.");
+              setRoom(null);
+              return;
+            }
+            if (data.room) applyRoom(data.room);
+          } catch {
+            /* ignore */
           }
-          if (data.room) applyRoom(data.room);
-        } catch {
-          /* ignore bad frames */
-        }
-      };
-    } catch {
-      /* EventSource unsupported — poll only */
+        };
+      } catch {
+        /* poll only */
+      }
     }
 
     const poll = setInterval(() => {
       void fetchRoom();
-      const pid = playerIdRef.current;
-      if (pid) {
-        void fetch(`/api/rooms/${roomId}/heartbeat`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ playerId: pid }),
-        }).catch(() => {});
+      if (!staticMode) {
+        const pid = playerIdRef.current;
+        if (pid) {
+          void fetch(`/api/rooms/${roomId}/heartbeat`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId: pid }),
+          }).catch(() => {});
+        }
       }
     }, 2000);
 
     const onUnload = () => {
       const pid = playerIdRef.current;
       if (!pid) return;
+      if (staticMode) {
+        browserLeave(roomId, pid);
+        return;
+      }
       const body = JSON.stringify({ playerId: pid });
       if (navigator.sendBeacon) {
         navigator.sendBeacon(
@@ -120,10 +153,11 @@ export function useRoomSession(roomId: string) {
     return () => {
       cancelled = true;
       es?.close();
+      unsub?.();
       clearInterval(poll);
       window.removeEventListener("pagehide", onUnload);
     };
-  }, [roomId, fetchRoom, applyRoom]);
+  }, [roomId, fetchRoom, applyRoom, staticMode]);
 
   useEffect(() => {
     playerIdRef.current = playerId;
@@ -134,6 +168,15 @@ export function useRoomSession(roomId: string) {
     setStarting(true);
     setError(null);
     try {
+      if (staticMode) {
+        const result = browserStart(roomId, playerId);
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        applyRoom(result.room);
+        return;
+      }
       const res = await fetchWithTimeout(`/api/rooms/${roomId}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -157,6 +200,15 @@ export function useRoomSession(roomId: string) {
     if (!playerId || answering) return;
     setAnswering(true);
     try {
+      if (staticMode) {
+        const result = browserAnswer(roomId, playerId, choiceIndex);
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        applyRoom(result.room);
+        return;
+      }
       const res = await fetchWithTimeout(`/api/rooms/${roomId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -180,6 +232,15 @@ export function useRoomSession(roomId: string) {
     if (!playerId || rematching) return;
     setRematching(true);
     try {
+      if (staticMode) {
+        const result = browserRematch(roomId, playerId);
+        if (!result.ok) {
+          setError(result.message);
+          return;
+        }
+        applyRoom(result.room);
+        return;
+      }
       const res = await fetchWithTimeout(`/api/rooms/${roomId}/rematch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -201,6 +262,11 @@ export function useRoomSession(roomId: string) {
 
   const leave = async () => {
     if (!playerId) return;
+    if (staticMode) {
+      browserLeave(roomId, playerId);
+      sessionStorage.removeItem(storageKey(roomId));
+      return;
+    }
     try {
       await fetchWithTimeout(`/api/rooms/${roomId}/leave`, {
         method: "POST",

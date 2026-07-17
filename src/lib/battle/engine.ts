@@ -6,7 +6,6 @@ import {
 } from "@/lib/constants";
 import { multiPoints } from "@/lib/battle/scoring";
 import { applySoloOutcome, finalSoloResult } from "@/lib/battle/solo";
-import { roomStore } from "@/lib/room-store";
 import type { Answer, Question, Room } from "@/lib/types";
 
 export type EngineResult =
@@ -253,23 +252,19 @@ export function submitAnswer(
     resolveCurrentQuestion(room, now);
   }
 
-  roomStore.set(room);
   return { ok: true, room };
 }
 
-export function ensureRoomDeadline(roomId: string, now = Date.now()): void {
-  const room = roomStore.get(roomId);
-  if (!room) return;
+/** Mutates room in place. Caller persists. */
+export function ensureRoomDeadline(room: Room, now = Date.now()): void {
   if (room.status !== "battling" || room.battlePhase !== "answering") return;
   if (!room.questionDeadlineAt) return;
   if (now < room.questionDeadlineAt) return;
   resolveCurrentQuestion(room, now);
-  roomStore.set(room);
 }
 
-export function advanceAfterReveal(roomId: string, now = Date.now()): void {
-  const room = roomStore.get(roomId);
-  if (!room) return;
+/** Mutates room in place. Caller persists. */
+export function advanceAfterReveal(room: Room, now = Date.now()): void {
   if (room.status !== "battling" || room.battlePhase !== "reveal") return;
   if (room.revealUntilAt && now < room.revealUntilAt) return;
 
@@ -284,13 +279,11 @@ export function advanceAfterReveal(roomId: string, now = Date.now()): void {
     } else {
       finishMulti(room);
     }
-    roomStore.set(room);
     return;
   }
 
   room.currentQuestionIndex = next;
   beginAnswering(room, now);
-  roomStore.set(room);
 }
 
 export function rematchRoom(room: Room, hostPlayerId: string): EngineResult {

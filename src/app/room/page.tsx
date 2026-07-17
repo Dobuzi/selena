@@ -1,19 +1,17 @@
 "use client";
 
-import { use } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useRoomSession } from "@/hooks/useRoomSession";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { BattlePanel } from "@/components/BattlePanel";
 import { ResultPanel } from "@/components/ResultPanel";
 
-export default function RoomPage({
-  params,
-}: {
-  params: Promise<{ roomId: string }>;
-}) {
-  const { roomId } = use(params);
+function RoomInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const roomId = searchParams.get("id") ?? "";
+
   const {
     room,
     playerId,
@@ -27,6 +25,20 @@ export default function RoomPage({
     rematch,
     leave,
   } = useRoomSession(roomId);
+
+  useEffect(() => {
+    if (!roomId) {
+      router.replace("/");
+    }
+  }, [roomId, router]);
+
+  if (!roomId) {
+    return (
+      <main className="app-shell flex items-center justify-center">
+        <p className="text-base text-slate-600">홈으로 이동 중…</p>
+      </main>
+    );
+  }
 
   if (loading) {
     return (
@@ -133,5 +145,19 @@ export default function RoomPage({
         )}
       </div>
     </main>
+  );
+}
+
+export default function RoomPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="app-shell flex items-center justify-center">
+          <p className="text-base text-slate-600">시험장 들어가는 중…</p>
+        </main>
+      }
+    >
+      <RoomInner />
+    </Suspense>
   );
 }

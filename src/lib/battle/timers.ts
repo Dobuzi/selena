@@ -29,9 +29,13 @@ export function scheduleQuestionTimeout(roomId: string): void {
   const delay = Math.max(0, room.questionDeadlineAt - Date.now()) + 50;
   const h = setTimeout(() => {
     handles.delete(roomId);
-    ensureRoomDeadline(roomId);
     const r = roomStore.get(roomId);
-    if (r?.battlePhase === "reveal") {
+    if (r) {
+      ensureRoomDeadline(r);
+      roomStore.set(r);
+    }
+    const next = roomStore.get(roomId);
+    if (next?.battlePhase === "reveal") {
       scheduleRevealAdvance(roomId);
     }
     publishRoom(roomId);
@@ -48,9 +52,13 @@ export function scheduleRevealAdvance(roomId: string): void {
   const delay = Math.max(0, room.revealUntilAt - Date.now()) + 20;
   const h = setTimeout(() => {
     handles.delete(roomId);
-    advanceAfterReveal(roomId);
     const r = roomStore.get(roomId);
-    if (r?.status === "battling" && r.battlePhase === "answering") {
+    if (r) {
+      advanceAfterReveal(r);
+      roomStore.set(r);
+    }
+    const next = roomStore.get(roomId);
+    if (next?.status === "battling" && next.battlePhase === "answering") {
       scheduleQuestionTimeout(roomId);
     }
     publishRoom(roomId);
@@ -59,17 +67,23 @@ export function scheduleRevealAdvance(roomId: string): void {
 }
 
 export function tickRoom(roomId: string): void {
-  ensureRoomDeadline(roomId);
+  const room = roomStore.get(roomId);
+  if (!room) return;
+  ensureRoomDeadline(room);
+  roomStore.set(room);
   const afterDeadline = roomStore.get(roomId);
   if (afterDeadline?.battlePhase === "reveal") {
     scheduleRevealAdvance(roomId);
   }
-  advanceAfterReveal(roomId);
+  const r2 = roomStore.get(roomId);
+  if (r2) {
+    advanceAfterReveal(r2);
+    roomStore.set(r2);
+  }
   const afterReveal = roomStore.get(roomId);
   if (afterReveal?.status === "battling" && afterReveal.battlePhase === "answering") {
     scheduleQuestionTimeout(roomId);
   }
 }
 
-// re-export constants used by tests if needed
 export { TIME_LIMIT_MS, REVEAL_MS };

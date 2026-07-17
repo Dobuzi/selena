@@ -23,7 +23,7 @@ async function enterRoom(
   await page.getByTestId("input-hall").fill(opts.hall);
   await page.getByTestId("input-nickname").fill(opts.nickname);
   await page.getByTestId("submit-enter").click();
-  await expect(page).toHaveURL(/\/room\//, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/room\?id=/, { timeout: 15_000 });
 }
 
 test("two players join same room, multi battle, both answer", async ({

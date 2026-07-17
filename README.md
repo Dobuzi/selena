@@ -57,12 +57,20 @@ docker run -d --name selena -p 3000:3000 -v selena_data:/data ghcr.io/dobuzi/sel
 
 방 데이터는 Docker 볼륨에 SQLite로 저장됩니다.
 
+## 플레이 (GitHub Pages)
+
+**https://dobuzi.github.io/selena/**
+
+브라우저 전용 데모(연습 문제). 솔로·같은 기기 탭 멀티 가능.  
+전체 서버/AI 기능은 Docker 이미지 사용.
+
 ## CI / 배포 (GitHub Actions)
 
 | 워크플로 | 트리거 | 내용 |
 |----------|--------|------|
 | [CI](https://github.com/Dobuzi/selena/actions/workflows/ci.yml) | `main` push / PR | 단위 테스트, 빌드, Playwright E2E |
 | [Deploy](https://github.com/Dobuzi/selena/actions/workflows/deploy.yml) | `main` push | Docker → `ghcr.io/dobuzi/selena` |
+| [GitHub Pages](https://github.com/Dobuzi/selena/actions/workflows/pages.yml) | `main` push | 정적 데모 → GitHub Pages |
 
 상세: **[docs/deploy.md](docs/deploy.md)**
 

@@ -12,7 +12,7 @@ test("create room, start solo, answer one question", async ({ page }) => {
   await page.getByTestId("input-nickname").fill("테스터");
   await page.getByTestId("submit-enter").click();
 
-  await expect(page).toHaveURL(/\/room\//, { timeout: 15_000 });
+  await expect(page).toHaveURL(/\/room\?id=/, { timeout: 15_000 });
   await expect(page.getByTestId("start-battle")).toBeVisible({ timeout: 10_000 });
 
   await page.getByTestId("start-battle").click();

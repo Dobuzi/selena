@@ -53,10 +53,9 @@ describe("battle engine solo", () => {
   it("timeout path marks wrong", () => {
     const { room } = setupSolo();
     const now = (room.questionDeadlineAt ?? Date.now()) + 1;
-    ensureRoomDeadline(room.roomId, now);
-    const updated = roomStore.get(room.roomId)!;
-    expect(updated.players[0].hp).toBe(2);
-    expect(updated.battlePhase).toBe("reveal");
+    ensureRoomDeadline(room, now);
+    expect(room.players[0].hp).toBe(2);
+    expect(room.battlePhase).toBe("reveal");
   });
 });
 
@@ -111,10 +110,9 @@ describe("battle engine multi", () => {
     const { room, playerId } = setupSolo();
     submitAnswer(room, playerId, room.questions[0].correctIndex);
     const t = (room.revealUntilAt ?? Date.now()) + 1;
-    advanceAfterReveal(room.roomId, t);
-    const updated = roomStore.get(room.roomId)!;
-    expect(updated.currentQuestionIndex).toBe(1);
-    expect(updated.battlePhase).toBe("answering");
+    advanceAfterReveal(room, t);
+    expect(room.currentQuestionIndex).toBe(1);
+    expect(room.battlePhase).toBe("answering");
   });
 });
 

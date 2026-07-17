@@ -7,12 +7,26 @@ function storageKey(roomId: string) {
   return `selena:playerId:${roomId}`;
 }
 
+async function readJson(res: Response): Promise<Record<string, unknown>> {
+  const text = await res.text();
+  if (!text) return {};
+  try {
+    return JSON.parse(text) as Record<string, unknown>;
+  } catch {
+    throw new Error(
+      res.ok
+        ? "서버 응답을 읽지 못했어요."
+        : `서버 오류 (${res.status}). 잠시 후 다시 시도해 주세요.`,
+    );
+  }
+}
+
 export function useRoomSession(roomId: string) {
   const [room, setRoom] = useState<ClientRoom | null>(null);
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const esRef = useRef<EventSource | null>(null);
+  const playerIdRef = useRef<string | null>(null);
 
   const applyRoom = useCallback((r: ClientRoom) => {
     setRoom(r);
@@ -20,14 +34,18 @@ export function useRoomSession(roomId: string) {
   }, []);
 
   const fetchRoom = useCallback(async () => {
-    const res = await fetch(`/api/rooms/${roomId}`);
-    if (!res.ok) {
-      setError("시험장이 없어요.");
-      setRoom(null);
-      return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}`, { cache: "no-store" });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setError(String(data.message ?? "시험장이 없어요."));
+        setRoom(null);
+        return;
+      }
+      applyRoom(data.room as ClientRoom);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "네트워크 오류가 났어요.");
     }
-    const data = await res.json();
-    applyRoom(data.room);
   }, [roomId, applyRoom]);
 
   useEffect(() => {
@@ -36,104 +54,153 @@ export function useRoomSession(roomId: string) {
         ? sessionStorage.getItem(storageKey(roomId))
         : null;
     setPlayerId(stored);
+    playerIdRef.current = stored;
 
     let cancelled = false;
+    let es: EventSource | null = null;
 
     (async () => {
       if (stored) {
-        await fetch(`/api/rooms/${roomId}/reconnect`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ playerId: stored }),
-        });
+        try {
+          await fetch(`/api/rooms/${roomId}/reconnect`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ playerId: stored }),
+          });
+        } catch {
+          /* continue */
+        }
       }
       if (cancelled) return;
       await fetchRoom();
       setLoading(false);
     })();
 
-    const es = new EventSource(`/api/rooms/${roomId}/events`);
-    esRef.current = es;
-    es.onmessage = (ev) => {
-      try {
-        const data = JSON.parse(ev.data);
-        if (data.error) {
-          setError("시험장이 없어요.");
-          setRoom(null);
-          return;
+    const qs = stored ? `?playerId=${encodeURIComponent(stored)}` : "";
+    try {
+      es = new EventSource(`/api/rooms/${roomId}/events${qs}`);
+      es.onmessage = (ev) => {
+        try {
+          const data = JSON.parse(ev.data);
+          if (data.error) {
+            setError("시험장이 없어요.");
+            setRoom(null);
+            return;
+          }
+          if (data.room) applyRoom(data.room);
+        } catch {
+          /* ignore bad frames */
         }
-        if (data.room) applyRoom(data.room);
-      } catch {
-        /* ignore */
-      }
-    };
-    es.onerror = () => {
-      /* poll fallback */
-    };
+      };
+    } catch {
+      /* EventSource unsupported — poll only */
+    }
 
     const poll = setInterval(() => {
       void fetchRoom();
+      const pid = playerIdRef.current;
+      if (pid) {
+        void fetch(`/api/rooms/${roomId}/heartbeat`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ playerId: pid }),
+        }).catch(() => {});
+      }
     }, 2000);
+
+    const onUnload = () => {
+      const pid = playerIdRef.current;
+      if (!pid) return;
+      const body = JSON.stringify({ playerId: pid });
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(
+          `/api/rooms/${roomId}/leave`,
+          new Blob([body], { type: "application/json" }),
+        );
+      }
+    };
+    window.addEventListener("pagehide", onUnload);
 
     return () => {
       cancelled = true;
-      es.close();
+      es?.close();
       clearInterval(poll);
+      window.removeEventListener("pagehide", onUnload);
     };
   }, [roomId, fetchRoom, applyRoom]);
 
+  useEffect(() => {
+    playerIdRef.current = playerId;
+  }, [playerId]);
+
   const start = async () => {
     if (!playerId) return;
-    const res = await fetch(`/api/rooms/${roomId}/start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.message ?? "시작 실패");
-      return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/start`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+      });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setError(String(data.message ?? "시작 실패"));
+        return;
+      }
+      applyRoom(data.room as ClientRoom);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "시작 중 네트워크 오류");
     }
-    applyRoom(data.room);
   };
 
   const answer = async (choiceIndex: number | null) => {
     if (!playerId) return;
-    const res = await fetch(`/api/rooms/${roomId}/answer`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId, choiceIndex }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.message ?? "제출 실패");
-      return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/answer`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId, choiceIndex }),
+      });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setError(String(data.message ?? "제출 실패"));
+        return;
+      }
+      applyRoom(data.room as ClientRoom);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "제출 중 네트워크 오류");
     }
-    applyRoom(data.room);
   };
 
   const rematch = async () => {
     if (!playerId) return;
-    const res = await fetch(`/api/rooms/${roomId}/rematch`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId }),
-    });
-    const data = await res.json();
-    if (!res.ok) {
-      setError(data.message ?? "다시 하기 실패");
-      return;
+    try {
+      const res = await fetch(`/api/rooms/${roomId}/rematch`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+      });
+      const data = await readJson(res);
+      if (!res.ok) {
+        setError(String(data.message ?? "다시 하기 실패"));
+        return;
+      }
+      applyRoom(data.room as ClientRoom);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "다시 하기 중 네트워크 오류");
     }
-    applyRoom(data.room);
   };
 
   const leave = async () => {
     if (!playerId) return;
-    await fetch(`/api/rooms/${roomId}/leave`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId }),
-    });
+    try {
+      await fetch(`/api/rooms/${roomId}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ playerId }),
+      });
+    } catch {
+      /* best effort */
+    }
     sessionStorage.removeItem(storageKey(roomId));
   };
 

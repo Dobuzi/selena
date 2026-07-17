@@ -93,4 +93,41 @@ describe("createOrJoinRoom", () => {
     });
     expect(r.ok).toBe(false);
   });
+
+  it("create reclaims a full lobby stuck with ghosts", () => {
+    for (let i = 0; i < 4; i++) {
+      const r = createOrJoinRoom({
+        intent: i === 0 ? "create" : "join",
+        schoolName: "FullSchool",
+        examHallName: "FullHall",
+        subject: "math",
+        difficulty: "easy",
+        nickname: `P${i}`,
+      });
+      expect(r.ok).toBe(true);
+    }
+    const blocked = createOrJoinRoom({
+      intent: "join",
+      schoolName: "FullSchool",
+      examHallName: "FullHall",
+      subject: "math",
+      nickname: "extra",
+    });
+    expect(blocked.ok).toBe(false);
+    if (!blocked.ok) expect(blocked.code).toBe("ROOM_FULL");
+
+    const reclaimed = createOrJoinRoom({
+      intent: "create",
+      schoolName: "FullSchool",
+      examHallName: "FullHall",
+      subject: "math",
+      difficulty: "hard",
+      nickname: "새호스트",
+    });
+    expect(reclaimed.ok).toBe(true);
+    if (!reclaimed.ok) return;
+    expect(reclaimed.room.players).toHaveLength(1);
+    expect(reclaimed.room.players[0].nickname).toBe("새호스트");
+    expect(reclaimed.room.difficulty).toBe("hard");
+  });
 });

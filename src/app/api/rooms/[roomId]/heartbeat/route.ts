@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
-import { tickRoom } from "@/lib/battle/timers";
 import { getRoom, touchRoomActivity } from "@/lib/room-service";
 import { toClientView } from "@/lib/room-view";
 
 export const runtime = "nodejs";
 
-export async function GET(
+export async function POST(
   req: Request,
   ctx: { params: Promise<{ roomId: string }> },
 ) {
   const { roomId } = await ctx.params;
-  const playerId = new URL(req.url).searchParams.get("playerId");
-  if (playerId) touchRoomActivity(roomId, playerId);
-  tickRoom(roomId);
+  const body = await req.json().catch(() => ({}));
+  const playerId = String(body.playerId ?? "");
+  if (!playerId) {
+    return NextResponse.json(
+      { code: "VALIDATION", message: "playerId가 필요해요." },
+      { status: 400 },
+    );
+  }
+  touchRoomActivity(roomId, playerId);
   const room = getRoom(roomId);
   if (!room) {
     return NextResponse.json(
@@ -20,5 +25,5 @@ export async function GET(
       { status: 404 },
     );
   }
-  return NextResponse.json({ room: toClientView(room) });
+  return NextResponse.json({ room: toClientView(room), ok: true });
 }

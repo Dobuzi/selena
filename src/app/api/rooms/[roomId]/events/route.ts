@@ -1,26 +1,57 @@
 import { tickRoom } from "@/lib/battle/timers";
 import { subscribe } from "@/lib/room-events";
-import { getRoom } from "@/lib/room-service";
+import { getRoom, touchRoomActivity } from "@/lib/room-service";
 import { toClientView } from "@/lib/room-view";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   ctx: { params: Promise<{ roomId: string }> },
 ) {
   const { roomId } = await ctx.params;
+  const url = new URL(req.url);
+  const playerId = url.searchParams.get("playerId");
+
+  let closed = false;
+  let heartbeat: ReturnType<typeof setInterval> | null = null;
+  let unsub: (() => void) | null = null;
 
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
-      const send = (data: unknown) => {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify(data)}\n\n`),
-        );
+
+      const safeEnqueue = (chunk: Uint8Array) => {
+        if (closed) return;
+        try {
+          controller.enqueue(chunk);
+        } catch {
+          cleanup();
+        }
       };
 
+      const send = (data: unknown) => {
+        safeEnqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+      };
+
+      const cleanup = () => {
+        if (closed) return;
+        closed = true;
+        if (heartbeat) clearInterval(heartbeat);
+        heartbeat = null;
+        if (unsub) unsub();
+        unsub = null;
+        try {
+          controller.close();
+        } catch {
+          /* already closed */
+        }
+      };
+
+      if (playerId) {
+        touchRoomActivity(roomId, playerId);
+      }
       tickRoom(roomId);
       const room = getRoom(roomId);
       if (room) {
@@ -29,8 +60,9 @@ export async function GET(
         send({ error: "ROOM_NOT_FOUND" });
       }
 
-      const unsub = subscribe((id) => {
-        if (id !== roomId) return;
+      unsub = subscribe((id) => {
+        if (id !== roomId || closed) return;
+        if (playerId) touchRoomActivity(roomId, playerId);
         tickRoom(roomId);
         const r = getRoom(roomId);
         if (!r) {
@@ -40,26 +72,23 @@ export async function GET(
         send({ room: toClientView(r) });
       });
 
-      const heartbeat = setInterval(() => {
-        controller.enqueue(encoder.encode(`: ping\n\n`));
-      }, 15_000);
+      heartbeat = setInterval(() => {
+        if (playerId) touchRoomActivity(roomId, playerId);
+        safeEnqueue(encoder.encode(`: ping\n\n`));
+      }, 10_000);
 
-      const cancel = () => {
-        clearInterval(heartbeat);
-        unsub();
-      };
-
-      // @ts-expect-error attach for cancel
-      controller._cancel = cancel;
+      req.signal.addEventListener("abort", cleanup);
     },
     cancel() {
-      // cleaned via start cancel if needed
+      closed = true;
+      if (heartbeat) clearInterval(heartbeat);
+      if (unsub) unsub();
     },
   });
 
   return new Response(stream, {
     headers: {
-      "Content-Type": "text/event-stream",
+      "Content-Type": "text/event-stream; charset=utf-8",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },

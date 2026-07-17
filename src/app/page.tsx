@@ -35,6 +35,14 @@ export default function HomePage() {
     setError(null);
     setBusy(true);
     try {
+      if (!schoolName.trim() || !examHallName.trim()) {
+        setError("학교 이름과 시험장 이름을 입력해 주세요.");
+        return;
+      }
+      if (!nickname.trim()) {
+        setError("닉네임을 입력해 주세요.");
+        return;
+      }
       const res = await fetch("/api/rooms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -47,15 +55,40 @@ export default function HomePage() {
           difficulty: mode === "create" ? difficulty : undefined,
         }),
       });
-      const data = await res.json();
+      const text = await res.text();
+      let data: {
+        message?: string;
+        room?: { roomId: string };
+        playerId?: string;
+      } = {};
+      try {
+        data = text ? JSON.parse(text) : {};
+      } catch {
+        setError(
+          res.ok
+            ? "서버 응답을 읽지 못했어요. 서버를 재시작해 주세요."
+            : `서버 오류 (${res.status}). 개발 서버가 켜져 있는지 확인해 주세요.`,
+        );
+        return;
+      }
       if (!res.ok) {
         setError(data.message ?? "입장에 실패했어요.");
         return;
       }
+      if (!data.room?.roomId || !data.playerId) {
+        setError("입장 정보가 불완전해요. 다시 시도해 주세요.");
+        return;
+      }
       savePlayerId(data.room.roomId, data.playerId);
       router.push(`/room/${data.room.roomId}`);
-    } catch {
-      setError("네트워크 오류가 났어요.");
+    } catch (e) {
+      const msg =
+        e instanceof Error && e.message
+          ? e.message
+          : "네트워크 오류가 났어요. 서버(localhost:3000)가 실행 중인지 확인해 주세요.";
+      setError(msg.includes("fetch") || msg.includes("Failed")
+        ? "서버에 연결하지 못했어요. 터미널에서 npm run dev 를 확인해 주세요."
+        : msg);
     } finally {
       setBusy(false);
     }

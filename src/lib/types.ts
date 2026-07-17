@@ -29,6 +29,8 @@ export interface Player {
   connected: boolean;
   activeInRound: boolean;
   joinedAt: number;
+  /** Updated by client heartbeat / API activity. */
+  lastSeenAt: number;
   answers: Answer[];
 }
 

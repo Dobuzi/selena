@@ -2,23 +2,10 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientRoom } from "@/lib/room-view";
+import { fetchWithTimeout, readJson } from "@/lib/client-fetch";
 
 function storageKey(roomId: string) {
   return `selena:playerId:${roomId}`;
-}
-
-async function readJson(res: Response): Promise<Record<string, unknown>> {
-  const text = await res.text();
-  if (!text) return {};
-  try {
-    return JSON.parse(text) as Record<string, unknown>;
-  } catch {
-    throw new Error(
-      res.ok
-        ? "서버 응답을 읽지 못했어요."
-        : `서버 오류 (${res.status}). 잠시 후 다시 시도해 주세요.`,
-    );
-  }
 }
 
 export function useRoomSession(roomId: string) {
@@ -26,6 +13,9 @@ export function useRoomSession(roomId: string) {
   const [playerId, setPlayerId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [starting, setStarting] = useState(false);
+  const [answering, setAnswering] = useState(false);
+  const [rematching, setRematching] = useState(false);
   const playerIdRef = useRef<string | null>(null);
 
   const applyRoom = useCallback((r: ClientRoom) => {
@@ -35,7 +25,12 @@ export function useRoomSession(roomId: string) {
 
   const fetchRoom = useCallback(async () => {
     try {
-      const res = await fetch(`/api/rooms/${roomId}`, { cache: "no-store" });
+      const pid = playerIdRef.current;
+      const qs = pid ? `?playerId=${encodeURIComponent(pid)}` : "";
+      const res = await fetchWithTimeout(`/api/rooms/${roomId}${qs}`, {
+        cache: "no-store",
+        timeoutMs: 8_000,
+      });
       const data = await readJson(res);
       if (!res.ok) {
         setError(String(data.message ?? "시험장이 없어요."));
@@ -62,10 +57,11 @@ export function useRoomSession(roomId: string) {
     (async () => {
       if (stored) {
         try {
-          await fetch(`/api/rooms/${roomId}/reconnect`, {
+          await fetchWithTimeout(`/api/rooms/${roomId}/reconnect`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ playerId: stored }),
+            timeoutMs: 8_000,
           });
         } catch {
           /* continue */
@@ -134,12 +130,15 @@ export function useRoomSession(roomId: string) {
   }, [playerId]);
 
   const start = async () => {
-    if (!playerId) return;
+    if (!playerId || starting) return;
+    setStarting(true);
+    setError(null);
     try {
-      const res = await fetch(`/api/rooms/${roomId}/start`, {
+      const res = await fetchWithTimeout(`/api/rooms/${roomId}/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
+        timeoutMs: 20_000,
       });
       const data = await readJson(res);
       if (!res.ok) {
@@ -149,16 +148,20 @@ export function useRoomSession(roomId: string) {
       applyRoom(data.room as ClientRoom);
     } catch (e) {
       setError(e instanceof Error ? e.message : "시작 중 네트워크 오류");
+    } finally {
+      setStarting(false);
     }
   };
 
   const answer = async (choiceIndex: number | null) => {
-    if (!playerId) return;
+    if (!playerId || answering) return;
+    setAnswering(true);
     try {
-      const res = await fetch(`/api/rooms/${roomId}/answer`, {
+      const res = await fetchWithTimeout(`/api/rooms/${roomId}/answer`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId, choiceIndex }),
+        timeoutMs: 10_000,
       });
       const data = await readJson(res);
       if (!res.ok) {
@@ -168,16 +171,20 @@ export function useRoomSession(roomId: string) {
       applyRoom(data.room as ClientRoom);
     } catch (e) {
       setError(e instanceof Error ? e.message : "제출 중 네트워크 오류");
+    } finally {
+      setAnswering(false);
     }
   };
 
   const rematch = async () => {
-    if (!playerId) return;
+    if (!playerId || rematching) return;
+    setRematching(true);
     try {
-      const res = await fetch(`/api/rooms/${roomId}/rematch`, {
+      const res = await fetchWithTimeout(`/api/rooms/${roomId}/rematch`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
+        timeoutMs: 10_000,
       });
       const data = await readJson(res);
       if (!res.ok) {
@@ -187,16 +194,19 @@ export function useRoomSession(roomId: string) {
       applyRoom(data.room as ClientRoom);
     } catch (e) {
       setError(e instanceof Error ? e.message : "다시 하기 중 네트워크 오류");
+    } finally {
+      setRematching(false);
     }
   };
 
   const leave = async () => {
     if (!playerId) return;
     try {
-      await fetch(`/api/rooms/${roomId}/leave`, {
+      await fetchWithTimeout(`/api/rooms/${roomId}/leave`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ playerId }),
+        timeoutMs: 5_000,
       });
     } catch {
       /* best effort */
@@ -209,6 +219,9 @@ export function useRoomSession(roomId: string) {
     playerId,
     error,
     loading,
+    starting,
+    answering,
+    rematching,
     start,
     answer,
     rematch,

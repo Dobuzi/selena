@@ -13,10 +13,12 @@ export function LobbyPanel({
   room,
   playerId,
   onStart,
+  starting = false,
 }: {
   room: ClientRoom;
   playerId: string | null;
   onStart: () => void;
+  starting?: boolean;
 }) {
   const connected = room.players.filter((p) => p.connected);
   const isHost = playerId === room.hostPlayerId;
@@ -62,10 +64,17 @@ export function LobbyPanel({
         <button
           type="button"
           onClick={onStart}
-          disabled={!canSolo && !canMulti}
+          disabled={starting || (!canSolo && !canMulti)}
+          data-testid="start-battle"
           className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-lg font-bold text-white shadow hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
-          {canSolo ? "솔로 연습 시작 (vs AI)" : canMulti ? "멀티 배틀 시작" : "인원을 확인해 주세요"}
+          {starting
+            ? "문제 준비 중…"
+            : canSolo
+              ? "솔로 연습 시작 (vs AI)"
+              : canMulti
+                ? "멀티 배틀 시작"
+                : "인원을 확인해 주세요"}
         </button>
       ) : (
         <p className="text-center text-slate-500">호스트가 시작하기를 기다려 주세요…</p>

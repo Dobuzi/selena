@@ -14,8 +14,19 @@ export default function RoomPage({
 }) {
   const { roomId } = use(params);
   const router = useRouter();
-  const { room, playerId, error, loading, start, answer, rematch, leave } =
-    useRoomSession(roomId);
+  const {
+    room,
+    playerId,
+    error,
+    loading,
+    starting,
+    answering,
+    rematching,
+    start,
+    answer,
+    rematch,
+    leave,
+  } = useRoomSession(roomId);
 
   if (loading) {
     return (
@@ -64,12 +75,20 @@ export default function RoomPage({
         </p>
       )}
 
-      {room.status === "lobby" && (
-        <LobbyPanel room={room} playerId={playerId} onStart={() => void start()} />
+      {(room.status === "lobby" || (room.status === "generating" && starting)) && (
+        <LobbyPanel
+          room={room}
+          playerId={playerId}
+          starting={starting || room.status === "generating"}
+          onStart={() => void start()}
+        />
       )}
 
-      {room.status === "generating" && (
-        <div className="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200">
+      {room.status === "generating" && !starting && (
+        <div
+          className="rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-slate-200"
+          data-testid="generating"
+        >
           <p className="text-xl font-bold text-slate-900">문제 만드는 중…</p>
           <p className="mt-2 text-slate-500">AI가 중학 문제를 준비하고 있어요</p>
         </div>
@@ -82,9 +101,15 @@ export default function RoomPage({
               연습 문제로 진행해요
             </p>
           )}
+          {answering && (
+            <p className="mb-2 text-center text-sm font-medium text-indigo-700">
+              제출 중…
+            </p>
+          )}
           <BattlePanel
             room={room}
             playerId={playerId}
+            answering={answering}
             onAnswer={(i) => void answer(i)}
           />
         </>
@@ -94,6 +119,7 @@ export default function RoomPage({
         <ResultPanel
           room={room}
           playerId={playerId}
+          rematching={rematching}
           onRematch={() => void rematch()}
           onHome={async () => {
             await leave();

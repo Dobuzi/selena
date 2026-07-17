@@ -7,10 +7,12 @@ export function BattlePanel({
   room,
   playerId,
   onAnswer,
+  answering = false,
 }: {
   room: ClientRoom;
   playerId: string | null;
   onAnswer: (choiceIndex: number) => void;
+  answering?: boolean;
 }) {
   const me = room.players.find((p) => p.playerId === playerId);
   const q = room.currentQuestion;
@@ -68,7 +70,10 @@ export function BattlePanel({
         </div>
       )}
 
-      <div className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
+      <div
+        className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"
+        data-testid="question-stem"
+      >
         <p className="text-lg font-semibold leading-relaxed text-slate-900">{q.stem}</p>
       </div>
 
@@ -81,8 +86,9 @@ export function BattlePanel({
             <button
               key={i}
               type="button"
-              disabled={answered || isReveal}
+              disabled={answered || isReveal || answering}
               onClick={() => onAnswer(i)}
+              data-testid={`choice-${i}`}
               className={`rounded-2xl px-4 py-3 text-left font-medium transition ring-1 ${
                 isCorrect
                   ? "bg-emerald-100 text-emerald-900 ring-emerald-300"
@@ -93,6 +99,7 @@ export function BattlePanel({
             >
               <span className="mr-2 font-bold text-slate-700">{i + 1}.</span>
               {choice}
+              {answering && myPick ? " …" : ""}
             </button>
           );
         })}

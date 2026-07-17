@@ -111,6 +111,7 @@ export default function HomePage() {
           <button
             type="button"
             onClick={() => setMode("create")}
+            data-testid="home-create"
             className="rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500"
           >
             시험장 만들기
@@ -141,6 +142,7 @@ export default function HomePage() {
           <label className="block">
             <span className="text-sm font-medium text-slate-700">학교 이름</span>
             <input
+              data-testid="input-school"
               className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={schoolName}
               onChange={(e) => setSchoolName(e.target.value)}
@@ -150,6 +152,7 @@ export default function HomePage() {
           <label className="block">
             <span className="text-sm font-medium text-slate-700">시험장 이름</span>
             <input
+              data-testid="input-hall"
               className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={examHallName}
               onChange={(e) => setExamHallName(e.target.value)}
@@ -159,6 +162,7 @@ export default function HomePage() {
           <label className="block">
             <span className="text-sm font-medium text-slate-700">닉네임</span>
             <input
+              data-testid="input-nickname"
               className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
@@ -217,6 +221,7 @@ export default function HomePage() {
           <button
             type="button"
             disabled={busy}
+            data-testid="submit-enter"
             onClick={() => void submit()}
             className="w-full rounded-2xl bg-indigo-600 py-3 text-lg font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
           >

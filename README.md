@@ -33,9 +33,14 @@ XAI_API_KEY=your_key_here
 ## 개발
 
 ```bash
-npm test    # 단위 테스트
+npm test        # 단위 테스트
+npm run test:e2e  # Playwright (솔로 플로우)
 npm run build
 ```
+
+방 상태는 **SQLite** (`.data/selena.sqlite`)에 저장됩니다.  
+경로 변경: `SELENA_DB_PATH=/path/to/file.sqlite`  
+테스트는 `:memory:` 또는 임시 파일을 씁니다.
 
 ## 구조
 

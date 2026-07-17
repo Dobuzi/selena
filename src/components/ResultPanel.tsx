@@ -7,11 +7,13 @@ export function ResultPanel({
   playerId,
   onRematch,
   onHome,
+  rematching = false,
 }: {
   room: ClientRoom;
   playerId: string | null;
   onRematch: () => void;
   onHome: () => void;
+  rematching?: boolean;
 }) {
   const isHost = playerId === room.hostPlayerId;
   const ranked = [...room.players]
@@ -20,7 +22,7 @@ export function ResultPanel({
 
   return (
     <div className="space-y-6">
-      <div className="text-center">
+      <div className="text-center" data-testid="result-panel">
         <h2 className="text-3xl font-black text-slate-900">결과</h2>
         {room.mode === "solo" && (
           <p className="mt-2 text-xl font-bold text-indigo-600">
@@ -76,9 +78,10 @@ export function ResultPanel({
           <button
             type="button"
             onClick={onRematch}
-            className="flex-1 rounded-2xl bg-indigo-600 py-3 font-bold text-white hover:bg-indigo-500"
+            disabled={rematching}
+            className="flex-1 rounded-2xl bg-indigo-600 py-3 font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
           >
-            다시 하기
+            {rematching ? "준비 중…" : "다시 하기"}
           </button>
         )}
         <button

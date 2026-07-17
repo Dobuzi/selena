@@ -21,7 +21,7 @@ export function ResultPanel({
     .sort((a, b) => b.score - a.score);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-4">
       <div className="text-center" data-testid="result-panel">
         <h2 className="text-3xl font-black text-slate-900">결과</h2>
         {room.mode === "solo" && (
@@ -38,16 +38,18 @@ export function ResultPanel({
           {ranked.map((p, i) => (
             <li
               key={p.playerId}
-              className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"
+              className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3"
             >
-              <span>
+              <span className="text-base">
                 <span className="mr-2 font-bold text-indigo-600">{i + 1}.</span>
                 {p.nickname}
                 {p.playerId === playerId && (
                   <span className="ml-2 text-xs text-slate-500">(나)</span>
                 )}
               </span>
-              <span className="font-semibold tabular-nums">{p.score}점</span>
+              <span className="font-semibold tabular-nums text-slate-900">
+                {p.score}점
+              </span>
             </li>
           ))}
         </ol>
@@ -59,27 +61,29 @@ export function ResultPanel({
           {room.review.map((item, idx) => (
             <div
               key={item.question.id}
-              className="rounded-2xl bg-white p-4 text-sm shadow-sm ring-1 ring-slate-200"
+              className="rounded-2xl bg-white p-4 text-sm shadow-sm ring-1 ring-slate-200 sm:text-base"
             >
-              <p className="font-medium text-slate-900">
+              <p className="font-medium leading-relaxed text-slate-900">
                 {idx + 1}. {item.question.stem}
               </p>
-              <p className="mt-1 text-emerald-700">
+              <p className="mt-1.5 text-emerald-700">
                 정답: {item.question.choices[item.question.correctIndex]}
               </p>
-              <p className="mt-1 text-slate-600">{item.question.explanation}</p>
+              <p className="mt-1 leading-relaxed text-slate-600">
+                {item.question.explanation}
+              </p>
             </div>
           ))}
         </div>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="sticky bottom-0 flex flex-col gap-3 bg-gradient-to-t from-[#f8fafc] via-[#f8fafc] to-transparent pt-4 sm:static sm:flex-row sm:bg-none sm:pt-0">
         {isHost && (
           <button
             type="button"
             onClick={onRematch}
             disabled={rematching}
-            className="flex-1 rounded-2xl bg-indigo-600 py-3 font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
+            className="btn-touch flex-1 bg-indigo-600 text-white active:bg-indigo-700 disabled:opacity-60"
           >
             {rematching ? "준비 중…" : "다시 하기"}
           </button>
@@ -87,7 +91,7 @@ export function ResultPanel({
         <button
           type="button"
           onClick={onHome}
-          className="flex-1 rounded-2xl bg-slate-100 py-3 font-bold text-slate-800 hover:bg-slate-200"
+          className="btn-touch flex-1 bg-slate-200 text-slate-900 active:bg-slate-300"
         >
           홈으로
         </button>

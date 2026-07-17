@@ -8,6 +8,11 @@
   --muted: #334155;
   --card: #ffffff;
   --ring: #cbd5e1;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --touch-min: 44px;
 }
 
 @theme inline {
@@ -19,22 +24,36 @@
 
 html {
   color-scheme: light;
+  /* Smooth scroll; avoid horizontal bounce issues */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: linear-gradient(180deg, #e0e7ff 0%, #f8fafc 45%, #ffe4e6 100%);
-  background-attachment: fixed;
+  background-attachment: scroll; /* fixed can jank on iOS */
   color: #0f172a;
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, "Segoe UI",
+    sans-serif;
+  /* iOS notch / home indicator */
+  min-height: 100dvh;
+  overscroll-behavior-y: none;
 }
 
-/* Form controls: never inherit light-on-light in dark OS themes */
+/* Form controls: high contrast + 16px to prevent iOS input zoom */
 input,
 textarea,
 select {
   color: #0f172a;
   background-color: #ffffff;
   border-color: #cbd5e1;
+  font-size: 16px;
+  line-height: 1.4;
+  border-radius: 0.75rem;
+  min-height: var(--touch-min);
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
 }
 
 input::placeholder,
@@ -43,6 +62,99 @@ textarea::placeholder {
   opacity: 1;
 }
 
+/* Touch-friendly buttons */
+button,
+[role="button"] {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+  min-height: var(--touch-min);
+}
+
 button:disabled {
   color: #475569;
+}
+
+/* Utility: page shell with safe areas */
+.app-shell {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 36rem; /* ~phone + comfortable iPad column */
+  margin-left: auto;
+  margin-right: auto;
+  min-height: 100dvh;
+  padding-top: max(1rem, var(--safe-top));
+  padding-right: max(1rem, var(--safe-right));
+  padding-bottom: max(1.25rem, var(--safe-bottom));
+  padding-left: max(1rem, var(--safe-left));
+}
+
+@media (min-width: 768px) {
+  .app-shell {
+    max-width: 42rem; /* iPad portrait readable width */
+    padding-top: max(1.5rem, var(--safe-top));
+    padding-bottom: max(1.5rem, var(--safe-bottom));
+  }
+}
+
+/* Primary touch control */
+.btn-touch {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3rem; /* 48px */
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  font-weight: 700;
+  user-select: none;
+  -webkit-user-select: none;
+  transition: transform 0.08s ease, opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.btn-touch:active:not(:disabled) {
+  transform: scale(0.98);
+  opacity: 0.95;
+}
+
+/* Choice tiles: large hit targets on phone */
+.choice-touch {
+  min-height: 3.25rem;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-radius: 1rem;
+  font-weight: 600;
+  line-height: 1.35;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.choice-touch:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+/* Chip / pill selectors */
+.chip-touch {
+  min-height: 2.75rem;
+  min-width: 3.5rem;
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-weight: 600;
+  font-size: 0.9375rem;
+}
+
+/* Developer credit */
+.dev-credit {
+  margin-top: auto;
+  padding-top: 2rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: #475569;
+}
+
+.dev-credit strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: #1e293b;
+  font-weight: 600;
 }

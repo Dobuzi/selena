@@ -20,6 +20,8 @@ const DIFFS: { value: Difficulty; label: string }[] = [
   { value: "hard", label: "상" },
 ];
 
+const DEVELOPER = "빛가온 초등학교 1학년 1반 김도아";
+
 export default function HomePage() {
   const router = useRouter();
   const [mode, setMode] = useState<Mode>("choose");
@@ -86,149 +88,165 @@ export default function HomePage() {
         e instanceof Error && e.message
           ? e.message
           : "네트워크 오류가 났어요. 서버(localhost:3000)가 실행 중인지 확인해 주세요.";
-      setError(msg.includes("fetch") || msg.includes("Failed")
-        ? "서버에 연결하지 못했어요. 터미널에서 npm run dev 를 확인해 주세요."
-        : msg);
+      setError(
+        msg.includes("fetch") || msg.includes("Failed")
+          ? "서버에 연결하지 못했어요. 터미널에서 npm run dev 를 확인해 주세요."
+          : msg,
+      );
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-lg flex-col justify-center p-6">
-      <div className="mb-8 text-center">
-        <p className="text-sm font-semibold uppercase tracking-widest text-indigo-600">
-          중학 시험장 배틀
-        </p>
-        <h1 className="mt-2 text-4xl font-black text-slate-900">Selena</h1>
-        <p className="mt-2 text-slate-600">
-          학교·시험장 이름으로 들어가서, 문제로 배틀해요
-        </p>
-      </div>
-
-      {mode === "choose" && (
-        <div className="flex flex-col gap-3">
-          <button
-            type="button"
-            onClick={() => setMode("create")}
-            data-testid="home-create"
-            className="rounded-2xl bg-indigo-600 py-4 text-lg font-bold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-500"
-          >
-            시험장 만들기
-          </button>
-          <button
-            type="button"
-            onClick={() => setMode("join")}
-            className="rounded-2xl bg-white py-4 text-lg font-bold text-slate-800 ring-1 ring-slate-200 hover:bg-slate-50"
-          >
-            시험장 입장
-          </button>
+    <main className="app-shell flex flex-col">
+      <div className="flex flex-1 flex-col justify-center py-4">
+        <div className="mb-8 text-center">
+          <p className="text-sm font-semibold tracking-widest text-indigo-600">
+            중학 시험장 배틀
+          </p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-slate-900 sm:text-5xl">
+            Selena
+          </h1>
+          <p className="mt-3 text-base leading-relaxed text-slate-600">
+            학교·시험장 이름으로 들어가서, 문제로 배틀해요
+          </p>
         </div>
-      )}
 
-      {(mode === "create" || mode === "join") && (
-        <div className="space-y-4 rounded-3xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <button
-            type="button"
-            className="text-sm text-slate-500"
-            onClick={() => setMode("choose")}
-          >
-            ← 뒤로
-          </button>
-          <h2 className="text-xl font-bold text-slate-900">
-            {mode === "create" ? "시험장 만들기" : "시험장 입장"}
-          </h2>
-
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">학교 이름</span>
-            <input
-              data-testid="input-school"
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
-              value={schoolName}
-              onChange={(e) => setSchoolName(e.target.value)}
-              placeholder="예: 선린중학교"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">시험장 이름</span>
-            <input
-              data-testid="input-hall"
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
-              value={examHallName}
-              onChange={(e) => setExamHallName(e.target.value)}
-              placeholder="예: 3학년 1반 수학"
-            />
-          </label>
-          <label className="block">
-            <span className="text-sm font-medium text-slate-700">닉네임</span>
-            <input
-              data-testid="input-nickname"
-              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              placeholder="예: 민수"
-            />
-          </label>
-
-          <div>
-            <span className="text-sm font-medium text-slate-700">과목</span>
-            <div className="mt-2 flex flex-wrap gap-2">
-              {SUBJECTS.map((s) => (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => setSubject(s.value)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                    subject === s.value
-                      ? "bg-indigo-600 text-white"
-                      : "bg-slate-200 text-slate-900"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              ))}
-            </div>
+        {mode === "choose" && (
+          <div className="flex flex-col gap-3">
+            <button
+              type="button"
+              onClick={() => setMode("create")}
+              data-testid="home-create"
+              className="btn-touch w-full bg-indigo-600 text-lg text-white shadow-lg shadow-indigo-200 active:bg-indigo-700"
+            >
+              시험장 만들기
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("join")}
+              className="btn-touch w-full bg-white text-lg text-slate-900 ring-1 ring-slate-300 active:bg-slate-50"
+            >
+              시험장 입장
+            </button>
           </div>
+        )}
 
-          {mode === "create" && (
+        {(mode === "create" || mode === "join") && (
+          <div className="space-y-4 rounded-3xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6">
+            <button
+              type="button"
+              className="btn-touch min-h-11 justify-start px-2 text-base font-semibold text-slate-600"
+              onClick={() => setMode("choose")}
+            >
+              ← 뒤로
+            </button>
+            <h2 className="text-xl font-bold text-slate-900">
+              {mode === "create" ? "시험장 만들기" : "시험장 입장"}
+            </h2>
+
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">학교 이름</span>
+              <input
+                data-testid="input-school"
+                autoComplete="organization"
+                enterKeyHint="next"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-slate-900 placeholder:text-slate-400"
+                value={schoolName}
+                onChange={(e) => setSchoolName(e.target.value)}
+                placeholder="예: 선린중학교"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">시험장 이름</span>
+              <input
+                data-testid="input-hall"
+                enterKeyHint="next"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-slate-900 placeholder:text-slate-400"
+                value={examHallName}
+                onChange={(e) => setExamHallName(e.target.value)}
+                placeholder="예: 3학년 1반 수학"
+              />
+            </label>
+            <label className="block">
+              <span className="text-sm font-medium text-slate-700">닉네임</span>
+              <input
+                data-testid="input-nickname"
+                autoComplete="nickname"
+                enterKeyHint="done"
+                className="mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3.5 py-3 text-slate-900 placeholder:text-slate-400"
+                value={nickname}
+                onChange={(e) => setNickname(e.target.value)}
+                placeholder="예: 민수"
+              />
+            </label>
+
             <div>
-              <span className="text-sm font-medium text-slate-700">난이도</span>
-              <div className="mt-2 flex gap-2">
-                {DIFFS.map((d) => (
+              <span className="text-sm font-medium text-slate-700">과목</span>
+              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {SUBJECTS.map((s) => (
                   <button
-                    key={d.value}
+                    key={s.value}
                     type="button"
-                    onClick={() => setDifficulty(d.value)}
-                    className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                      difficulty === d.value
-                        ? "bg-rose-600 text-white"
-                        : "bg-slate-200 text-slate-900"
+                    onClick={() => setSubject(s.value)}
+                    className={`chip-touch ${
+                      subject === s.value
+                        ? "bg-indigo-600 text-white"
+                        : "bg-slate-200 text-slate-900 active:bg-slate-300"
                     }`}
                   >
-                    {d.label}
+                    {s.label}
                   </button>
                 ))}
               </div>
             </div>
-          )}
 
-          {error && (
-            <p className="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-700">
-              {error}
-            </p>
-          )}
+            {mode === "create" && (
+              <div>
+                <span className="text-sm font-medium text-slate-700">난이도</span>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {DIFFS.map((d) => (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => setDifficulty(d.value)}
+                      className={`chip-touch ${
+                        difficulty === d.value
+                          ? "bg-rose-600 text-white"
+                          : "bg-slate-200 text-slate-900 active:bg-slate-300"
+                      }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
-          <button
-            type="button"
-            disabled={busy}
-            data-testid="submit-enter"
-            onClick={() => void submit()}
-            className="w-full rounded-2xl bg-indigo-600 py-3 text-lg font-bold text-white hover:bg-indigo-500 disabled:opacity-60"
-          >
-            {busy ? "들어가는 중…" : "입장하기"}
-          </button>
-        </div>
-      )}
+            {error && (
+              <p className="rounded-xl bg-rose-50 px-3 py-3 text-sm leading-relaxed text-rose-700">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="button"
+              disabled={busy}
+              data-testid="submit-enter"
+              onClick={() => void submit()}
+              className="btn-touch w-full bg-indigo-600 text-lg text-white active:bg-indigo-700 disabled:opacity-60"
+            >
+              {busy ? "들어가는 중…" : "입장하기"}
+            </button>
+          </div>
+        )}
+      </div>
+
+      <footer className="dev-credit" data-testid="developer-credit">
+        <span>개발</span>
+        <strong>{DEVELOPER}</strong>
+      </footer>
     </main>
   );
 }

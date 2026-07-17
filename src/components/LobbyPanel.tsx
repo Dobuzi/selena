@@ -30,10 +30,10 @@ export function LobbyPanel({
     <div className="space-y-6">
       <div>
         <p className="text-sm font-medium text-indigo-600">시험장</p>
-        <h2 className="text-2xl font-bold text-slate-900">
+        <h2 className="mt-1 break-keep text-2xl font-bold leading-snug text-slate-900">
           {room.schoolName} · {room.examHallName}
         </h2>
-        <p className="mt-1 text-slate-600">
+        <p className="mt-2 text-base text-slate-600">
           {SUBJECT_LABEL[room.subject] ?? room.subject} · 난이도{" "}
           {room.difficulty === "easy"
             ? "하"
@@ -43,17 +43,23 @@ export function LobbyPanel({
         </p>
       </div>
 
-      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200">
-        <p className="mb-2 text-sm font-semibold text-slate-700">참가자 ({n}/4)</p>
+      <div className="rounded-2xl bg-white p-4 shadow-sm ring-1 ring-slate-200 sm:p-5">
+        <p className="mb-3 text-sm font-semibold text-slate-700">
+          참가자 ({n}/4)
+        </p>
         <ul className="space-y-2">
           {connected.map((p) => (
             <li
               key={p.playerId}
-              className="flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2"
+              className="flex min-h-12 items-center justify-between rounded-xl bg-slate-50 px-3.5 py-3"
             >
-              <span className="font-medium text-slate-800">{p.nickname}</span>
+              <span className="text-base font-medium text-slate-900">
+                {p.nickname}
+              </span>
               {p.playerId === room.hostPlayerId && (
-                <span className="text-xs text-indigo-600">호스트</span>
+                <span className="text-xs font-semibold text-indigo-600">
+                  호스트
+                </span>
               )}
             </li>
           ))}
@@ -66,7 +72,7 @@ export function LobbyPanel({
           onClick={onStart}
           disabled={starting || (!canSolo && !canMulti)}
           data-testid="start-battle"
-          className="w-full rounded-2xl bg-indigo-600 px-4 py-3 text-lg font-bold text-white shadow hover:bg-indigo-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+          className="btn-touch w-full bg-indigo-600 text-lg text-white shadow active:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-slate-300"
         >
           {starting
             ? "문제 준비 중…"
@@ -77,7 +83,9 @@ export function LobbyPanel({
                 : "인원을 확인해 주세요"}
         </button>
       ) : (
-        <p className="text-center text-slate-500">호스트가 시작하기를 기다려 주세요…</p>
+        <p className="py-3 text-center text-base text-slate-500">
+          호스트가 시작하기를 기다려 주세요…
+        </p>
       )}
     </div>
   );

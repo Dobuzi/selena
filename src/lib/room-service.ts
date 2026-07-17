@@ -181,7 +181,7 @@ export async function startRoom(
     questions = gen.questions;
     usedFallback = gen.usedFallback;
   } catch {
-    questions = getFallbackQuestions(room.subject);
+    questions = getFallbackQuestions(room.subject, room.difficulty);
     usedFallback = true;
   }
 

@@ -106,27 +106,27 @@ export default function HomePage() {
           </h2>
 
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">학교 이름</span>
+            <span className="text-sm font-medium text-slate-700">학교 이름</span>
             <input
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={schoolName}
               onChange={(e) => setSchoolName(e.target.value)}
               placeholder="예: 선린중학교"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">시험장 이름</span>
+            <span className="text-sm font-medium text-slate-700">시험장 이름</span>
             <input
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={examHallName}
               onChange={(e) => setExamHallName(e.target.value)}
               placeholder="예: 3학년 1반 수학"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-600">닉네임</span>
+            <span className="text-sm font-medium text-slate-700">닉네임</span>
             <input
-              className="mt-1 w-full rounded-xl border border-slate-200 px-3 py-2"
+              className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-slate-900 placeholder:text-slate-400"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="예: 민수"
@@ -134,17 +134,17 @@ export default function HomePage() {
           </label>
 
           <div>
-            <span className="text-sm font-medium text-slate-600">과목</span>
+            <span className="text-sm font-medium text-slate-700">과목</span>
             <div className="mt-2 flex flex-wrap gap-2">
               {SUBJECTS.map((s) => (
                 <button
                   key={s.value}
                   type="button"
                   onClick={() => setSubject(s.value)}
-                  className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
                     subject === s.value
                       ? "bg-indigo-600 text-white"
-                      : "bg-slate-100 text-slate-700"
+                      : "bg-slate-200 text-slate-900"
                   }`}
                 >
                   {s.label}
@@ -155,17 +155,17 @@ export default function HomePage() {
 
           {mode === "create" && (
             <div>
-              <span className="text-sm font-medium text-slate-600">난이도</span>
+              <span className="text-sm font-medium text-slate-700">난이도</span>
               <div className="mt-2 flex gap-2">
                 {DIFFS.map((d) => (
                   <button
                     key={d.value}
                     type="button"
                     onClick={() => setDifficulty(d.value)}
-                    className={`rounded-full px-3 py-1 text-sm font-semibold ${
+                    className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
                       difficulty === d.value
-                        ? "bg-rose-500 text-white"
-                        : "bg-slate-100 text-slate-700"
+                        ? "bg-rose-600 text-white"
+                        : "bg-slate-200 text-slate-900"
                     }`}
                   >
                     {d.label}

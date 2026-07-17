@@ -26,9 +26,23 @@ describe("parseQuestionsPayload", () => {
 });
 
 describe("getFallbackQuestions", () => {
-  it("returns exactly 10 questions per subject", () => {
+  it("returns exactly 10 questions per subject and difficulty", () => {
     for (const s of ["korean", "english", "math", "science"] as const) {
-      expect(getFallbackQuestions(s)).toHaveLength(10);
+      for (const d of ["easy", "medium", "hard"] as const) {
+        expect(getFallbackQuestions(s, d)).toHaveLength(10);
+      }
     }
+  });
+
+  it("varies content by difficulty", () => {
+    const easy = getFallbackQuestions("math", "easy").map((q) => q.stem);
+    const hard = getFallbackQuestions("math", "hard").map((q) => q.stem);
+    expect(easy).not.toEqual(hard);
+  });
+
+  it("spreads correctIndex across options", () => {
+    const qs = getFallbackQuestions("math", "medium");
+    const set = new Set(qs.map((q) => q.correctIndex));
+    expect(set.size).toBeGreaterThanOrEqual(3);
   });
 });

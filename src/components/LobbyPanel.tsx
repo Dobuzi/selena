@@ -32,7 +32,12 @@ export function LobbyPanel({
           {room.schoolName} · {room.examHallName}
         </h2>
         <p className="mt-1 text-slate-600">
-          {SUBJECT_LABEL[room.subject] ?? room.subject} · 난이도 {room.difficulty}
+          {SUBJECT_LABEL[room.subject] ?? room.subject} · 난이도{" "}
+          {room.difficulty === "easy"
+            ? "하"
+            : room.difficulty === "hard"
+              ? "상"
+              : "중"}
         </p>
       </div>
 

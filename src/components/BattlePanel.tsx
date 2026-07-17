@@ -88,10 +88,10 @@ export function BattlePanel({
                   ? "bg-emerald-100 text-emerald-900 ring-emerald-300"
                   : myPick
                     ? "bg-indigo-100 text-indigo-900 ring-indigo-300"
-                    : "bg-white text-slate-800 ring-slate-200 hover:bg-slate-50 disabled:opacity-60"
+                    : "bg-white text-slate-900 ring-slate-300 hover:bg-slate-50 disabled:opacity-70"
               }`}
             >
-              <span className="mr-2 text-slate-400">{i + 1}.</span>
+              <span className="mr-2 font-bold text-slate-700">{i + 1}.</span>
               {choice}
             </button>
           );

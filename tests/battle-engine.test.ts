@@ -25,7 +25,7 @@ function setupSolo() {
   });
   if (!r.ok) throw new Error("fail");
   prepareStart(r.room, r.playerId);
-  enterBattling(r.room, getFallbackQuestions("math"), true);
+  enterBattling(r.room, getFallbackQuestions("math", "easy"), true);
   roomStore.set(r.room);
   return r;
 }
@@ -79,7 +79,7 @@ describe("battle engine multi", () => {
     });
     if (!a.ok || !b.ok) throw new Error("join fail");
     prepareStart(a.room, a.playerId);
-    enterBattling(a.room, getFallbackQuestions("science"), true);
+    enterBattling(a.room, getFallbackQuestions("science", "medium"), true);
     roomStore.set(a.room);
 
     const waiter = createOrJoinRoom({

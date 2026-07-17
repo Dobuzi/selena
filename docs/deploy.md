@@ -4,6 +4,39 @@
 → **한 대의 서버 프로세스**에서 돌리는 것이 맞습니다.  
 (서버리스 다중 인스턴스 / Vercel 기본 배포는 방 공유·SSE에 맞지 않습니다.)
 
+## GitHub Actions (자동)
+
+`main` 푸시 시:
+
+1. **CI** — 단위 테스트, 프로덕션 빌드, Playwright E2E  
+2. **Deploy** — Docker 이미지를 `ghcr.io/dobuzi/selena` 에 게시  
+
+### 이미지 실행 (VPS / 로컬)
+
+```bash
+# 패키지가 Private이면: gh auth token | docker login ghcr.io -u USER --password-stdin
+docker pull ghcr.io/dobuzi/selena:latest
+docker run -d --name selena --restart unless-stopped \
+  -p 3000:3000 \
+  -v selena_data:/data \
+  ghcr.io/dobuzi/selena:latest
+```
+
+### (선택) SSH 자동 배포
+
+Repo → Settings → Secrets and variables:
+
+| 이름 | 종류 | 설명 |
+|------|------|------|
+| `DEPLOY_HOST` | Secret | 서버 IP/호스트 |
+| `DEPLOY_USER` | Secret | SSH 사용자 |
+| `DEPLOY_SSH_KEY` | Secret | private key |
+| `DEPLOY_PORT` | Secret | 기본 22 |
+| `XAI_API_KEY` | Secret | (선택) AI 키 |
+| `ENABLE_SSH_DEPLOY` | **Variable** | `true` 일 때만 SSH job 실행 |
+
+Packages 가 private 이면 서버에서 `docker login ghcr.io` 가 필요합니다.
+
 ## 권장 아키텍처
 
 ```

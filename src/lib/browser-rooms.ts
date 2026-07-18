@@ -377,4 +377,19 @@ export function browserLeave(roomId: string, playerId: string): void {
   save(room);
 }
 
+/** Test-only: wipe in-memory + localStorage room state. */
+export function _resetBrowserRoomsForTests(): void {
+  for (const id of [...timerHandles.keys()]) clearTimers(id);
+  memory.clear();
+  listeners.clear();
+  hydrated = false;
+  if (typeof localStorage !== "undefined") {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 void TIME_LIMIT_MS;

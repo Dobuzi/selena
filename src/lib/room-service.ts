@@ -94,8 +94,9 @@ export function pruneRoom(roomId: string, now = Date.now()): Room | undefined {
   if (!room) return undefined;
 
   const before = room.players.length;
+  // Drop only heartbeat-stale players. Temporary connected=false must survive
+  // so reconnectPlayer can re-attach (leaveRoom already removes from the array).
   room.players = room.players.filter((p) => {
-    if (!p.connected) return false;
     const last = p.lastSeenAt ?? p.joinedAt;
     return now - last <= PLAYER_STALE_MS;
   });

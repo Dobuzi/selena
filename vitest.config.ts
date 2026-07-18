@@ -5,12 +5,8 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["tests/**/*.{test,spec}.{ts,tsx}"],
-    // Per-file: // @vitest-environment happy-dom
-    environmentMatchGlobs: [
-      ["tests/browser-*.test.ts", "happy-dom"],
-      ["tests/room-nav.test.ts", "happy-dom"],
-      ["tests/use-room-session.test.tsx", "happy-dom"],
-    ],
+    // Browser suites opt in via file pragma:
+    //   // @vitest-environment happy-dom
     setupFiles: ["tests/setup.ts"],
   },
   resolve: {

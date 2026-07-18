@@ -39,15 +39,24 @@ export function useRoomSession(roomId: string) {
       return;
     }
     if (staticMode) {
-      const r = browserGetRoom(roomId);
-      if (!r) {
+      try {
+        const r = browserGetRoom(roomId);
+        if (!r) {
+          setError(
+            "시험장을 찾을 수 없어요. 홈에서 같은 학교·시험장·과목으로 다시 입장해 주세요.",
+          );
+          setRoom(null);
+          return;
+        }
+        applyRoom(r);
+      } catch (e) {
         setError(
-          "시험장을 찾을 수 없어요. 홈에서 같은 학교·시험장·과목으로 다시 입장해 주세요.",
+          e instanceof Error
+            ? e.message
+            : "시험장을 불러오지 못했어요. 홈에서 다시 입장해 주세요.",
         );
         setRoom(null);
-        return;
       }
-      applyRoom(r);
       return;
     }
     try {
@@ -70,6 +79,21 @@ export function useRoomSession(roomId: string) {
   }, [roomId, applyRoom, staticMode]);
 
   useEffect(() => {
+    let cancelled = false;
+    let es: EventSource | null = null;
+    let unsub: (() => void) | undefined;
+    let poll: ReturnType<typeof setInterval> | undefined;
+
+    // Always clear stuck "들어가는 중…" when roomId is missing
+    if (!roomId) {
+      setLoading(false);
+      setRoom(null);
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
     const stored =
       typeof window !== "undefined"
         ? sessionStorage.getItem(storageKey(roomId))
@@ -77,31 +101,38 @@ export function useRoomSession(roomId: string) {
     setPlayerId(stored);
     playerIdRef.current = stored;
 
-    let cancelled = false;
-    let es: EventSource | null = null;
-    let unsub: (() => void) | undefined;
-
     (async () => {
-      if (!staticMode && stored) {
-        try {
-          await fetchWithTimeout(`/api/rooms/${roomId}/reconnect`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ playerId: stored }),
-            timeoutMs: 8_000,
-          });
-        } catch {
-          /* continue */
+      try {
+        if (!staticMode && stored) {
+          try {
+            await fetchWithTimeout(`/api/rooms/${roomId}/reconnect`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ playerId: stored }),
+              timeoutMs: 8_000,
+            });
+          } catch {
+            /* continue to load room */
+          }
         }
+        if (cancelled) return;
+        await fetchRoom();
+      } catch (e) {
+        if (!cancelled) {
+          setError(
+            e instanceof Error ? e.message : "시험장을 불러오지 못했어요.",
+          );
+          setRoom(null);
+        }
+      } finally {
+        // Critical: never leave UI stuck on "시험장 들어가는 중…"
+        if (!cancelled) setLoading(false);
       }
-      if (cancelled) return;
-      await fetchRoom();
-      setLoading(false);
     })();
 
     if (staticMode) {
       unsub = subscribeBrowserRoom((id) => {
-        if (id === roomId) void fetchRoom();
+        if (id === roomId && !cancelled) void fetchRoom();
       });
     } else {
       const qs = stored ? `?playerId=${encodeURIComponent(stored)}` : "";
@@ -125,7 +156,8 @@ export function useRoomSession(roomId: string) {
       }
     }
 
-    const poll = setInterval(() => {
+    poll = setInterval(() => {
+      if (cancelled) return;
       void fetchRoom();
       if (!staticMode) {
         const pid = playerIdRef.current;
@@ -139,13 +171,13 @@ export function useRoomSession(roomId: string) {
       }
     }, 2000);
 
-    const onUnload = () => {
+    // Server mode: free slot on tab close. Static mode: do NOT auto-leave on
+    // pagehide — iOS Safari can fire it during client navigations and would
+    // delete the only player (empty room) while the lobby is still loading.
+    const onPageHide = () => {
+      if (staticMode) return;
       const pid = playerIdRef.current;
       if (!pid) return;
-      if (staticMode) {
-        browserLeave(roomId, pid);
-        return;
-      }
       const body = JSON.stringify({ playerId: pid });
       if (navigator.sendBeacon) {
         navigator.sendBeacon(
@@ -154,14 +186,14 @@ export function useRoomSession(roomId: string) {
         );
       }
     };
-    window.addEventListener("pagehide", onUnload);
+    window.addEventListener("pagehide", onPageHide);
 
     return () => {
       cancelled = true;
       es?.close();
       unsub?.();
-      clearInterval(poll);
-      window.removeEventListener("pagehide", onUnload);
+      if (poll) clearInterval(poll);
+      window.removeEventListener("pagehide", onPageHide);
     };
   }, [roomId, fetchRoom, applyRoom, staticMode]);
 

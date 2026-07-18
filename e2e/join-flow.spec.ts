@@ -58,8 +58,22 @@ test("after create, lobby remains reachable (entry regression)", async ({
   await page.getByTestId("submit-enter").click();
 
   await expect(page).toHaveURL(/\/room\/?\?id=/, { timeout: 15_000 });
-  // Must not bounce home
+  // Must not bounce home or stick on loading
+  await expect(page.getByText("시험장 들어가는 중")).toHaveCount(0, {
+    timeout: 10_000,
+  });
   await expect(page.getByRole("heading", { name: "Selena" })).toHaveCount(0);
   await expect(page.getByTestId("start-battle")).toBeVisible({ timeout: 10_000 });
   await expect(page.getByText("시험장", { exact: true })).toBeVisible();
+});
+
+test("loading spinner clears even if room is missing", async ({ page }) => {
+  await page.goto("/room/?id=missing-room-id-zzz");
+  await expect(page.getByText("시험장 들어가는 중")).toHaveCount(0, {
+    timeout: 10_000,
+  });
+  // Error or empty-state UI with way home — not infinite spinner
+  await expect(
+    page.getByRole("button", { name: "홈으로" }).or(page.getByText(/찾을 수 없어요|정보가 없어요/)),
+  ).toBeVisible({ timeout: 10_000 });
 });

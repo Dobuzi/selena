@@ -55,6 +55,9 @@ function loadAll(): void {
   }
 }
 
+/** Skip applying our own BroadcastChannel echo (prevents loadAll races). */
+let suppressBroadcastApply = false;
+
 function persist(): void {
   if (typeof window === "undefined") return;
   const obj: Record<string, Room> = {};
@@ -65,11 +68,17 @@ function persist(): void {
     /* quota */
   }
   try {
+    suppressBroadcastApply = true;
     const bc = new BroadcastChannel(CHANNEL);
     bc.postMessage({ type: "sync" });
     bc.close();
+    // Other tabs receive async; clear suppress on next macrotask so we
+    // ignore our own echo without blocking real cross-tab updates.
+    setTimeout(() => {
+      suppressBroadcastApply = false;
+    }, 0);
   } catch {
-    /* ignore */
+    suppressBroadcastApply = false;
   }
 }
 
@@ -81,6 +90,7 @@ function ensure(): void {
   try {
     const bc = new BroadcastChannel(CHANNEL);
     bc.onmessage = () => {
+      if (suppressBroadcastApply) return;
       loadAll();
       for (const id of memory.keys()) notify(id);
     };
@@ -120,10 +130,15 @@ function clearTimers(roomId: string): void {
   timerHandles.delete(roomId);
 }
 
-function save(room: Room): void {
+function save(room: Room, opts?: { notifyListeners?: boolean }): void {
   memory.set(room.roomId, room);
   persist();
-  notify(room.roomId);
+  // Default: notify other UI subscribers. Callers that are themselves
+  // reacting to a read (browserGetRoom) must pass notifyListeners:false
+  // or fetchRoom → getRoom → save → notify → fetchRoom loops forever.
+  if (opts?.notifyListeners !== false) {
+    notify(room.roomId);
+  }
 }
 
 function tick(room: Room): void {
@@ -169,12 +184,19 @@ function getRaw(roomId: string): Room | undefined {
 }
 
 export function browserGetRoom(roomId: string): ClientRoom | null {
+  if (!roomId) return null;
   const room = getRaw(roomId);
   if (!room) return null;
-  tick(room);
-  save(room);
-  scheduleRoom(roomId);
-  return toClientView(room);
+  try {
+    tick(room);
+    // Silent save: reading must not re-notify subscribers (infinite loop).
+    save(room, { notifyListeners: false });
+    scheduleRoom(roomId);
+    return toClientView(room);
+  } catch {
+    // Corrupted room payload should not hang the UI on "loading…"
+    return toClientView(room);
+  }
 }
 
 export function browserCreateOrJoin(input: {

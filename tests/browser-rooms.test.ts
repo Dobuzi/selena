@@ -8,6 +8,7 @@ import {
   browserLeave,
   browserRematch,
   browserStart,
+  subscribeBrowserRoom,
 } from "@/lib/browser-rooms";
 import { makeRoomId } from "@/lib/room-id";
 import { REVEAL_MS, TIME_LIMIT_MS } from "@/lib/constants";
@@ -283,5 +284,32 @@ describe("room id stability", () => {
     expect(created.ok).toBe(true);
     if (!created.ok) return;
     expect(created.room.roomId).toBe(id);
+  });
+});
+
+describe("browserGetRoom must not re-notify infinitely", () => {
+  it("subscribe + repeated getRoom does not stack-overflow", () => {
+    const created = browserCreateOrJoin({
+      intent: "create",
+      schoolName: "Loop",
+      examHallName: "L",
+      subject: "math",
+      nickname: "N",
+    });
+    if (!created.ok) throw new Error("create");
+
+    let calls = 0;
+    const unsub = subscribeBrowserRoom(() => {
+      calls += 1;
+      // Mimic useRoomSession: refresh on notify
+      browserGetRoom(created.room.roomId);
+    });
+
+    // One create already notified once; another explicit get must not cascade
+    browserGetRoom(created.room.roomId);
+    browserGetRoom(created.room.roomId);
+
+    expect(calls).toBeLessThan(5);
+    unsub();
   });
 });

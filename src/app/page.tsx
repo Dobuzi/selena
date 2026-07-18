@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { savePlayerId } from "@/hooks/useRoomSession";
 import { browserCreateOrJoin } from "@/lib/browser-rooms";
 import { isStaticMode } from "@/lib/platform";
+import { rememberRoomId, roomHref } from "@/lib/room-nav";
 import type { Difficulty, Subject } from "@/lib/types";
 
 type Mode = "choose" | "create" | "join";
@@ -62,7 +63,8 @@ export default function HomePage() {
           return;
         }
         savePlayerId(result.room.roomId, result.playerId);
-        router.push(`/room?id=${encodeURIComponent(result.room.roomId)}`);
+        rememberRoomId(result.room.roomId);
+        router.push(roomHref(result.room.roomId));
         return;
       }
 
@@ -103,7 +105,8 @@ export default function HomePage() {
         return;
       }
       savePlayerId(data.room.roomId, data.playerId);
-      router.push(`/room?id=${encodeURIComponent(data.room.roomId)}`);
+      rememberRoomId(data.room.roomId);
+      router.push(roomHref(data.room.roomId));
     } catch (e) {
       const msg =
         e instanceof Error && e.message
@@ -136,8 +139,10 @@ export default function HomePage() {
           </p>
           {staticHint && (
             <p className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-left text-sm leading-relaxed text-amber-900 ring-1 ring-amber-200">
-              GitHub Pages 데모 모드입니다. 연습 문제(폴백)로 솔로·같은 기기 탭
-              멀티가 가능해요. 서버/AI 전체 기능은 Docker 이미지를 사용하세요.
+              GitHub Pages 데모입니다. 시험장은 <strong>이 기기 브라우저</strong>
+              에만 저장돼요. 친구와 하려면 같은 폰/PC에서 탭을 하나 더 열어
+              입장하거나, 전체 기능은 Docker 서버를 쓰세요. 과목도 만들 때와
+              같아야 해요.
             </p>
           )}
         </div>

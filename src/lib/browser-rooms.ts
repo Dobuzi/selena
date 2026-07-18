@@ -206,15 +206,34 @@ export function browserCreateOrJoin(input: {
   const roomId = makeRoomId(school, hall, input.subject);
   let room = memory.get(roomId);
 
-  if (input.intent === "join" && !room) {
-    return {
-      ok: false,
-      code: "ROOM_NOT_FOUND",
-      message: "시험장이 없어요. 만들기를 눌러 주세요.",
-    };
-  }
-
+  // Pages static: rooms live only in this browser's localStorage.
+  // "입장" with no room → create one so the form never dead-ends.
   if (!room) {
+    if (input.intent === "join") {
+      // Still create, but keep a clear product message for multi-device confusion
+      const host = emptyPlayer(uniqueNickname(input.nickname, []));
+      room = {
+        roomId,
+        schoolName: school,
+        examHallName: hall,
+        subject: input.subject,
+        difficulty: input.difficulty ?? "medium",
+        hostPlayerId: host.playerId,
+        players: [host],
+        questions: [],
+        status: "lobby",
+        mode: null,
+        currentQuestionIndex: 0,
+        questionDeadlineAt: null,
+        battlePhase: null,
+        revealUntilAt: null,
+        usedFallback: true,
+        aiHp: INITIAL_HP,
+        soloResult: null,
+      };
+      save(room);
+      return { ok: true, room: toClientView(room), playerId: host.playerId };
+    }
     const host = emptyPlayer(uniqueNickname(input.nickname, []));
     room = {
       roomId,

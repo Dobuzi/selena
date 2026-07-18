@@ -1,16 +1,20 @@
 "use client";
 
-import { Suspense, useEffect } from "react";
+import { Suspense, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useRoomSession } from "@/hooks/useRoomSession";
 import { LobbyPanel } from "@/components/LobbyPanel";
 import { BattlePanel } from "@/components/BattlePanel";
 import { ResultPanel } from "@/components/ResultPanel";
+import { resolveRoomId } from "@/lib/room-nav";
 
 function RoomInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const roomId = searchParams.get("id") ?? "";
+  const roomId = useMemo(
+    () => resolveRoomId(searchParams.get("id")),
+    [searchParams],
+  );
 
   const {
     room,
@@ -26,16 +30,19 @@ function RoomInner() {
     leave,
   } = useRoomSession(roomId);
 
-  useEffect(() => {
-    if (!roomId) {
-      router.replace("/");
-    }
-  }, [roomId, router]);
-
   if (!roomId) {
     return (
-      <main className="app-shell flex items-center justify-center">
-        <p className="text-base text-slate-600">홈으로 이동 중…</p>
+      <main className="app-shell flex flex-col items-center justify-center gap-4">
+        <p className="text-center text-base text-slate-700">
+          시험장 정보가 없어요. 홈에서 다시 입장해 주세요.
+        </p>
+        <button
+          type="button"
+          className="btn-touch min-w-[8rem] bg-indigo-600 px-6 text-white active:bg-indigo-700"
+          onClick={() => router.push("/")}
+        >
+          홈으로
+        </button>
       </main>
     );
   }
@@ -105,7 +112,7 @@ function RoomInner() {
           >
             <p className="text-xl font-bold text-slate-900">문제 만드는 중…</p>
             <p className="mt-2 text-base text-slate-500">
-              AI가 중학 문제를 준비하고 있어요
+              문제를 준비하고 있어요
             </p>
           </div>
         )}

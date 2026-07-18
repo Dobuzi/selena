@@ -34,10 +34,16 @@ export function useRoomSession(roomId: string) {
   }, []);
 
   const fetchRoom = useCallback(async () => {
+    if (!roomId) {
+      setRoom(null);
+      return;
+    }
     if (staticMode) {
       const r = browserGetRoom(roomId);
       if (!r) {
-        setError("시험장이 없어요.");
+        setError(
+          "시험장을 찾을 수 없어요. 홈에서 같은 학교·시험장·과목으로 다시 입장해 주세요.",
+        );
         setRoom(null);
         return;
       }
